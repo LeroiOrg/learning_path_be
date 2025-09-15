@@ -1,0 +1,42 @@
+# Archivos y carpetas de git
+.git
+.gitignore
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.db
+
+# Entornos virtuales
+.venv/
+venv/
+env/
+
+# Dependencias que se instalan en Docker
+*.egg-info/
+.eggs/
+
+# Configuración local
+.env
+.env.*
+!.env.example   # se deja el de ejemplo
+
+# Archivos de tests y reports
+/tests/
+.coverage
+htmlcov/
+pytest_cache/
+
+# Logs
+*.log
+
+# Docker
+Dockerfile*
+docker-compose*
+
+# IDEs y editores
+.vscode/
+.idea/
+*.swp
