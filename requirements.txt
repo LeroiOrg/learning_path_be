@@ -1,0 +1,12 @@
+fastapi
+uvicorn[standard]
+pymongo
+flake8
+isort
+black
+pydantic
+python-dotenv
+PyJWT
+google-generativeai
+python-jose[cryptography]
+passlib[bcrypt]
