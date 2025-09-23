@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from app.api import learning_path_routes
 
-app = FastAPI(title="IA Service", version="1.0")
+app = FastAPI(title="Learning path Service", version="1.0")
 
 app.include_router(learning_path_routes.router, prefix="/learning_path", tags=["learning_path"])
 
