@@ -1,9 +1,17 @@
 from fastapi import FastAPI
-from app.api import learning_path_routes
+from contextlib import asynccontextmanager
+from app.api import ai_routes
+from app.database.mongodb import connect_to_mongo, close_mongo_connection
 
-app = FastAPI(title="Learning path Service", version="1.0")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await connect_to_mongo()
+    yield
+    await close_mongo_connection()
 
-app.include_router(learning_path_routes.router, prefix="/learning_path", tags=["learning_path"])
+app = FastAPI(title="IA Service", version="1.0", lifespan=lifespan)
+
+app.include_router(ai_routes.router, prefix="/ai", tags=["ai"])
 
 @app.get("/health")
 def health():

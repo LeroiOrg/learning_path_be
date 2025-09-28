@@ -10,3 +10,4 @@ PyJWT
 google-generativeai
 python-jose[cryptography]
 passlib[bcrypt]
+motor
