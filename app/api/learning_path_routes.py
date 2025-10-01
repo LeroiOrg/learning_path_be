@@ -14,7 +14,7 @@ from app.core.security import get_current_user
 router = APIRouter()
 security = HTTPBearer()
 
-@router.post("/process-file")
+@router.post("/documents")
 async def process_file(
     request: ProcessFileRequest,
     email: str = Depends(get_current_user),
@@ -29,7 +29,7 @@ async def process_file(
     return response
 
 
-@router.post("/generate-roadmap")
+@router.post("/roadmaps")
 async def generate_roadmap(
     request: TopicRequest,
     email: str = Depends(get_current_user)
@@ -39,7 +39,7 @@ async def generate_roadmap(
     """
     return await generate_roadmap_logic(request)
     
-@router.post("/generate-questions")
+@router.post("/questions")
 async def generate_questions(
     request: TopicRequest,
     email: str = Depends(get_current_user)

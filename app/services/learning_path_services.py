@@ -20,6 +20,7 @@ async def process_file_logic(request, credits: int):
     )
 
     themes = await ask_gemini(full_prompt)
+    print("RESPUESTA DE LA IA", themes)
     themes = json.loads(themes.strip())
 
     response = {
@@ -44,6 +45,7 @@ async def generate_roadmap_logic(request):
     )
 
     response = await ask_gemini(full_prompt)
+    print("RESPUESTA DE LA IA", response)
     parse_response = response.replace("json", "").replace("```", "")
 
     second_prompt = (
@@ -76,6 +78,7 @@ async def generate_questions_logic(request):
     )
 
     response = await ask_gemini(full_prompt)
+    print("RESPUESTA DE LA IA", response)
     parse_response = response.replace("json", "").replace("```", "")
 
     return parse_response
