@@ -1,3 +1,44 @@
+from fastapi import APIRouter, HTTPException
+from app.services.chat_service import start_chat_session, send_message, get_chat_history
+from app.schemas.requests import ChatRequest, StartChatRequest
+# from app.core.security import get_current_user
+
+router = APIRouter()
+
+@router.post("/start-chat")
+async def start_chat(request: StartChatRequest):
+    email = "juramirezlop@unal.edu.co"
+    try:
+        chat_id = await start_chat_session(email, request.roadmap_topic)
+        return {
+            "chat_id": chat_id,
+            "roadmap_topic": request.roadmap_topic,
+            "message": "Sesión de chat iniciada. ¿Qué te gustaría saber sobre este tema?"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.post("/send-message")
+async def send_chat_message(request: ChatRequest):
+    email = "juramirezlop@unal.edu.co"
+    try:
+        response = await send_message(email, request.roadmap_topic, request.user_message)
+        return response
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+@router.get("/chat-history/{roadmap_topic}")
+async def get_conversation_history(roadmap_topic: str):
+    email = "juramirezlop@unal.edu.co"
+    try:
+        history = await get_chat_history(email, roadmap_topic)
+        if not history:
+            return {"message": "No se encontró historial"}
+        return history
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error: {str(e)}")
+
+'''
 from fastapi import APIRouter, Depends, HTTPException
 from app.services.chat_service import start_chat_session, send_message, get_chat_history
 from app.schemas.requests import ChatRequest, StartChatRequest
@@ -46,3 +87,4 @@ async def get_conversation_history(
         return history
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener historial: {str(e)}")
+'''
