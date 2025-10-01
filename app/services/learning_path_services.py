@@ -82,3 +82,31 @@ async def generate_questions_logic(request):
     parse_response = response.replace("json", "").replace("```", "")
 
     return parse_response
+
+async def related_topics_logic(request):
+    """
+    Lógica para obtener temas relacionados a un tema principal.
+    """
+    print("ESTO ES LO QUE LLEGA:", request)
+    full_prompt = (
+        f"Eres un experto en la generación de temas relacionados a un tema principal. "
+        f"El tema principal es '{request.topic}'. Quiero que el formato de la respuesta sea una "
+        f"lista JSON con únicamente MÁXIMO 6 temas relacionados y nada más, "
+        f"es decir: [\"tema1\", \"tema2\", \"tema3\"]. "
+        f"Cada tema debe tener una longitud máxima de 45 caracteres."
+    )
+
+    response = await ask_gemini(full_prompt)
+    print("RESPUESTA DE LA IA", response)
+
+    # limpiar ruido si viene con ```json ... ```
+    clean_response = response.replace("json", "").replace("```", "").strip()
+
+    try:
+        topics = json.loads(clean_response)
+    except Exception as e:
+        print("Error parseando respuesta de la IA:", e)
+        raise HTTPException(status_code=500, detail="Error procesando respuesta de IA")
+
+    return {"related_topics": topics}
+
