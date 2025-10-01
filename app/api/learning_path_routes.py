@@ -14,7 +14,6 @@ from app.core.security import get_current_user
 router = APIRouter()
 security = HTTPBearer()
 
-
 @router.post("/process-file")
 async def process_file(
     request: ProcessFileRequest,
