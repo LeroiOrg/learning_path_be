@@ -6,6 +6,9 @@ from app.services.learning_path_services import (
     generate_questions_logic,
     related_topics_logic
 )
+from app.services.ai_services import (
+    ask_gemini
+)
 from app.schemas.requests import (
     ProcessFileRequest,
     TopicRequest, 
@@ -62,7 +65,7 @@ async def related_topics(request: TopicRequest):
         f"lista con únicamente MÁXIMO 6 temas relacionados y NADA MÁS, es decir: [\"tema1\", \"tema2\", \"tema3\"] "
         f"Y que ademas, Cada tema debe tener una longitud máxima de 45 caracteres.  "
     )
-    response, tokens = await ask_gemini(full_prompt)
+    response = await ask_gemini(full_prompt)
     parse_resposne = response.replace("json", "").replace("```", "")
     print("parseado:", parse_resposne)
     return parse_resposne

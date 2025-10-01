@@ -6,4 +6,5 @@ model = genai.GenerativeModel("gemini-2.5-flash")
 
 async def ask_gemini(prompt: str):
     response = model.generate_content(prompt)
+    print("RESPUEST MODELO", response)
     return response.text
