@@ -1,6 +1,7 @@
 import json
 from fastapi import HTTPException
 from app.services.ai_services import ask_gemini
+import re
 
 async def process_file_logic(request, credits: int):
     """
@@ -21,11 +22,20 @@ async def process_file_logic(request, credits: int):
 
     themes = await ask_gemini(full_prompt)
     print("RESPUESTA DE LA IA", themes)
-    themes = json.loads(themes.strip())
+    match = re.search(r'```json(.*?)```', themes, re.DOTALL)
+    if not match:
+        raise HTTPException(status_code=400, detail="No se encontró bloque JSON en la respuesta de la IA")
+
+    json_text = match.group(1).strip()
+
+    try:
+        themes = json.loads(json_text)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"JSON inválido extraído de la IA: {e}")
 
     response = {
         "themes": themes,
-        "cost": 1
+        "raw_response": themes 
     }
     credits -= 1
     return response

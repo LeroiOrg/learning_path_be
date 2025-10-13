@@ -6,15 +6,14 @@ from app.services.learning_path_services import (
     generate_questions_logic,
     related_topics_logic
 )
-from app.services.ai_services import (
-    ask_gemini
+from app.services.db_services import (
+    save_conversation
 )
 from app.schemas.requests import (
     ProcessFileRequest,
     TopicRequest, 
 )
 from app.core.security import get_current_user
-import json
 
 router = APIRouter()
 security = HTTPBearer()
@@ -22,7 +21,7 @@ security = HTTPBearer()
 @router.post("/documents")
 async def process_file(
     request: ProcessFileRequest,
-    email: str = Depends(get_current_user),
+    email: dict = Depends(get_current_user),
     ):
     """
     Procesar un archivo y obtener las roadmaps
@@ -31,41 +30,78 @@ async def process_file(
     response = await process_file_logic(
         request, credits=3
     )
+    
+    user_email = email["email"]
+    
+    await save_conversation(
+        user_email=user_email,
+        route="/documents",
+        prompt=f"Procesar archivo: {request.fileName}",
+        response=str(response)
+    )
+    
     return response
 
 
 @router.post("/roadmaps")
 async def generate_roadmap(
     request: TopicRequest,
-    email: str = Depends(get_current_user)
+    email: dict = Depends(get_current_user)
     ):
     """
     Generar una roadmap a partir de los temas
     """
-    return await generate_roadmap_logic(request)
+    response = await generate_roadmap_logic(request)
+    
+    user_email = email["email"]
+    
+    await save_conversation(
+        user_email=user_email,
+        route="/roadmaps",
+        prompt=f"Generar roadmap del tema: {request.topic}",
+        response=str(response)
+    )
+    
+    return response
     
 @router.post("/questions")
 async def generate_questions(
     request: TopicRequest,
-    email: str = Depends(get_current_user)
+    email: dict = Depends(get_current_user)
     ):
     """
     Generar un conjunto de preguntas a partir del contenido de los temas relacionados
     """
-    return await generate_questions_logic(request)
+    response = await generate_questions_logic(request)
+    
+    user_email = email["email"]
+    
+    await save_conversation(
+        user_email=user_email,
+        route="/questions",
+        prompt=f"Generar preguntas del tema: {request.topic}",
+        response=str(response)
+    )
+    
+    return response 
 
 @router.post("/related-topics")
-async def related_topics(request: TopicRequest):
+async def related_topics(
+    request: TopicRequest,
+    email: dict = Depends(get_current_user)
+    ):
     """
     Obtener temas relacionados a un tema principal
     """
-    print("Se van a obtener temas relacionados")
-    full_prompt = (
-        f"Eres un experto en la generación de temas relacionados a un tema principal. El tema principal es {request.topic}. Quiero que el formato de la respuesta sea una"
-        f"lista con únicamente MÁXIMO 6 temas relacionados y NADA MÁS, es decir: [\"tema1\", \"tema2\", \"tema3\"] "
-        f"Y que ademas, Cada tema debe tener una longitud máxima de 45 caracteres.  "
+    response = await related_topics_logic(request)
+    
+    user_email = email["email"]
+    
+    await save_conversation(
+        user_email=user_email,
+        route="/related-topics",
+        prompt=f"Buscar temas relacionados con: {request.topic}",
+        response=str(response)
     )
-    response = await ask_gemini(full_prompt)
-    parse_resposne = response.replace("json", "").replace("```", "")
-    print("parseado:", parse_resposne)
-    return parse_resposne
+    
+    return response

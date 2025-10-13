@@ -10,3 +10,7 @@ PyJWT
 google-generativeai
 python-jose[cryptography]
 passlib[bcrypt]
+google-cloud-aiplatform
+google-auth
+openai
+pymongo
