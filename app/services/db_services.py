@@ -8,7 +8,7 @@ _user_sessions = {}
 def get_or_create_session(user_email: str) -> str:
     """
     Retorna el session_id actual de un usuario o crea uno nuevo si no existe.
-    Esto permite agrupar todas las conversaciones del usuario en una misma sesión.
+    Permite agrupar todas las conversaciones del usuario en una misma sesión.
     """
     if user_email not in _user_sessions:
         session_id = str(uuid.uuid4()) 
@@ -27,8 +27,8 @@ async def save_conversation(
     metadata: dict = None
 ):
     """
-    Guarda una conversación (prompt + respuesta) asociada a un usuario y sesión activa.
-    Si el usuario no tiene sesión activa, se genera automáticamente un session_id.
+    Guarda una conversación asociada a un usuario y sesión activa.
+    Si el usuario no tiene sesión activa, se genera un session_id.
     """
     session_id = get_or_create_session(user_email)
 
