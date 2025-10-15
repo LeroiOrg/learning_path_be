@@ -16,27 +16,27 @@ async def process_file_logic(request, credits: int):
     full_prompt = (
         f"Eres un experto en la extracción de los 3 temas principales de los cuales se pueden generar una ruta de "
         f"aprendizaje de un archivo. El archivo tiene el siguiente nombre {request.fileName} y este es el contenido: {request.fileBase64}. Quiero que el formato de la respuesta sea una"
-        f"lista con únicamente los 3 temas principales y nada más, es decir: [\"tema1\", \"tema2\", \"tema3\"] Si dentro del documento hay estas palabras: DROGAS, BOMBAS, TRATA DE PERSONAS, PORNOGRAFÍA "
-        f"devuelve BLOQUEADO SOLO SI ENCUENTRAS ESAS PALABRAS, DE LO CONTRARIO RESPONDE con los temas principales del documento. "
+        f"lista con únicamente los 3 temas principales y nada más, es decir: [\"tema1\", \"tema2\", \"tema3\"]"
     )
 
     themes = await ask_gemini(full_prompt)
     print("RESPUESTA DE LA IA", themes)
-    match = re.search(r'```json(.*?)```', themes, re.DOTALL)
+    
+    match = re.search(r'\[.*?\]', themes, re.DOTALL)
     if not match:
-        raise HTTPException(status_code=400, detail="No se encontró bloque JSON en la respuesta de la IA")
+        raise HTTPException(status_code=400, detail="No se pudo extraer una lista JSON de la respuesta del modelo")
 
-    json_text = match.group(1).strip()
+    json_text = match.group(0)
 
     try:
-        themes = json.loads(json_text)
-    except json.JSONDecodeError as e:
+        parsed_themes = json.loads(json_text)
+    except Exception as e:
         raise HTTPException(status_code=400, detail=f"JSON inválido extraído de la IA: {e}")
 
-    response = {
-        "themes": themes,
-        "raw_response": themes 
-    }
+    if not isinstance(parsed_themes, list):
+        raise HTTPException(status_code=400, detail="La respuesta de la IA no contiene una lista válida")
+
+    response = {"themes": parsed_themes}
     credits -= 1
     return response
 
@@ -56,18 +56,53 @@ async def generate_roadmap_logic(request):
 
     response = await ask_gemini(full_prompt)
     print("RESPUESTA DE LA IA", response)
-    parse_response = response.replace("json", "").replace("```", "")
+    cleaned = (
+        response.replace("```json", "")
+        .replace("```python", "")
+        .replace("```", "")
+        .strip()
+    )
+
+    match = re.search(r'\{.*\}', cleaned, re.DOTALL)
+    if not match:
+        raise HTTPException(status_code=400, detail="No se encontró un diccionario JSON válido en la respuesta del modelo.")
+
+    json_text = match.group(0)
+
+    try:
+        roadmap = json.loads(json_text)
+    except Exception as e:
+        print("Error al parsear JSON:", e)
+        raise HTTPException(status_code=400, detail=f"JSON inválido extraído de la IA: {e}")
 
     second_prompt = (
-        f"Ahora con estos temas quiero que me devuelvas un diccionario donde la clave es cada uno de los temas, SUBTEMAS y SUB-SUBTEMAS, es decir, toda la informacion que encuentras en este diccionario: {parse_response} CON EL NOMBRE TAL CUAL COMO TE LO DOY y el valor será "
-        f"el tiempo en parentecis que lleva aprender este tema junto con un resumen extenso de lo que trata el tema y un link REAL de internet y COMPLETAMENTE FUNCIONAL, que NO me redireccione a 404 para poder profundizar en el tema. Por ejemplo '{{\"Tema 1\": \"Tiempo para aprender, definción del tema y link de referencia\", \"Tema 2\": \"Tiempo para aprender, definción del tema y link de referencia\", \"Tema 3\": \"Tiempo para aprender, definción del tema y link de referencia\"}}' con las comillas tal cual como te las di."
-        f"Dentro del título del TEMA, no quiero nada más que los título del tema sin NADA más. Además NO me des información extra al diccionario, y no quiero que dentro del texto me des elementos como saltos de línea"
+        f"Ahora con estos temas quiero que me devuelvas un diccionario JSON donde la clave sea cada tema, "
+        f"subtema y sub-subtema, y el valor sea una descripción detallada con tiempo estimado y un link real. "
+        f"No incluyas texto fuera del JSON. "
+        f"Aquí tienes los datos base: {json_text}"
     )
 
     second_response = await ask_gemini(second_prompt)
-    parse_second_respone = second_response.replace("json", "").replace("```", "")
+    cleaned_extra = (
+        second_response.replace("```json", "")
+        .replace("```python", "")
+        .replace("```", "")
+        .strip()
+    )
 
-    return {"roadmap": parse_response, "extra_info": parse_second_respone}
+    match_extra = re.search(r'\{.*\}', cleaned_extra, re.DOTALL)
+    if not match_extra:
+        raise HTTPException(status_code=400, detail="No se encontró diccionario JSON válido en la respuesta secundaria.")
+
+    try:
+        extra_info = json.loads(match_extra.group(0))
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error procesando el JSON secundario: {e}")
+
+    return {
+        "roadmap": roadmap,
+        "extra_info": extra_info
+    }
 
 
 async def generate_questions_logic(request):
