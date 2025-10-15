@@ -11,7 +11,7 @@ def get_or_create_session(user_email: str) -> str:
     Esto permite agrupar todas las conversaciones del usuario en una misma sesión.
     """
     if user_email not in _user_sessions:
-        session_id = str(uuid.uuid4())  # genera un ID único
+        session_id = str(uuid.uuid4()) 
         _user_sessions[user_email] = session_id
         print(f"🆕 Nueva sesión creada para {user_email}: {session_id}")
     else:

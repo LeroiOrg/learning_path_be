@@ -144,7 +144,6 @@ async def related_topics_logic(request):
     response = await ask_gemini(full_prompt)
     print("RESPUESTA DE LA IA", response)
 
-    # limpiar ruido si viene con ```json ... ```
     clean_response = response.replace("json", "").replace("```", "").strip()
 
     try:
