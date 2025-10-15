@@ -1,15 +1,16 @@
 import os
 import vertexai
 import openai
-from google.auth import default, transport
+import google.auth
+from google.auth.transport import requests
 
 PROJECT_ID = os.getenv("PROJECT_ID")
 LOCATION = os.getenv("LOCATION")
 
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
-credentials, _ = default(scopes=["https://www.googleapis.com/auth/cloud-platform"])
-auth_request = transport.requests.Request()
+credentials, _ = google.auth.default()
+auth_request = requests.Request()
 credentials.refresh(auth_request)
 
 client = openai.OpenAI(
