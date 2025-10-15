@@ -10,4 +10,6 @@ COPY . .
 
 ENV PYTHONPATH=/app
 
+COPY keys/service-account.json /app/keys/service-account.json
+
 CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
