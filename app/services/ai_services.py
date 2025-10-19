@@ -5,6 +5,7 @@ import os
 PROJECT_ID = os.getenv("PROJECT_ID")
 LOCATION = os.getenv("LOCATION")
 
+# Vertex configuration
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
 model = GenerativeModel("gemini-2.5-pro")
