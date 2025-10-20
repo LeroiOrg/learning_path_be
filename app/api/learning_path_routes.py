@@ -51,7 +51,7 @@ async def generate_roadmap(
     """
     Generar una roadmap a partir de los temas
     """
-    response = await generate_roadmap_logic(request)
+    response = await generate_roadmap_logic(request, email["email"])
     
     user_email = email["email"]
     

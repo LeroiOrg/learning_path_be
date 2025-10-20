@@ -1,17 +1,13 @@
 import json
+import re
 from fastapi import HTTPException
 from app.services.ai_services import ask_gemini
-import re
+from app.services.pubsub_services import publish_credit_update
 
-async def process_file_logic(request, credits: int):
+async def process_file_logic(request):
     """
     Lógica para procesar un archivo y obtener temas principales.
     """
-    
-    if credits < 1:
-        raise HTTPException(
-            status_code=402, detail="Créditos insuficientes para la acción"
-        )
     
     full_prompt = (
         f"Eres un experto en la extracción de los 3 temas principales de los cuales se pueden generar una ruta de "
@@ -37,11 +33,10 @@ async def process_file_logic(request, credits: int):
         raise HTTPException(status_code=400, detail="La respuesta de la IA no contiene una lista válida")
 
     response = {"themes": parsed_themes}
-    credits -= 1
     return response
 
 
-async def generate_roadmap_logic(request):
+async def generate_roadmap_logic(request, user_email: str):
     """
     Lógica para generar la ruta de aprendizaje.
     """
@@ -98,6 +93,12 @@ async def generate_roadmap_logic(request):
         extra_info = json.loads(match_extra.group(0))
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error procesando el JSON secundario: {e}")
+    
+    try:
+        publish_credit_update(user_email, -1)  
+        print(f"💰 Crédito descontado a {user_email}")
+    except Exception as e:
+        print(f"⚠️ Error publicando descuento de crédito: {e}")
 
     return {
         "roadmap": roadmap,
