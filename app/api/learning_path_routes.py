@@ -28,7 +28,7 @@ async def process_file(
     """
     
     response = await process_file_logic(
-        request, credits=3
+        request
     )
     
     user_email = email["email"]
