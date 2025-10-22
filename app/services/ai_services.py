@@ -23,13 +23,11 @@ API_KEY = os.getenv("GOOGLE_API_KEY")
 PROJECT_ID = os.getenv("PROJECT_ID")
 LOCATION = os.getenv("LOCATION")
 
-# Inicializa Vertex AI con API key
 vertexai.init(api_key=API_KEY, project=PROJECT_ID, location=LOCATION)
 
-model = GenerativeModel("gemini-2.5-flash")
-
-async def ask_gemini(prompt: str):
-    response = model.generate_content(
+async def ask_gemini(prompt: str, model: str = "gemini-2.5-flash"):
+    model_instance = GenerativeModel(model)
+    response = model_instance.generate_content(
         [prompt],
         generation_config={
             "temperature": 0.3,

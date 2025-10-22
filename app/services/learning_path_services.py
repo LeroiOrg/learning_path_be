@@ -10,12 +10,12 @@ async def process_file_logic(request):
     """
     
     full_prompt = (
-        f"NECESITO UNA RESPUESTA ULTRA RAPIDA Y COMPLETA: Eres un experto en la extracción de los 3 temas principales de los cuales se pueden generar una ruta de "
+        f"NECESITO UNA RESPUESTA ULTRA RAPIDA, PRECISA CON LO QUE SE PREGUNTA, COMPLETA Y EN ESPAÑOL, EN TEXTO EN ESPAÑOL NO ME DEVUELVAS EN BASE64: Eres un experto en la extracción de los 3 temas principales de los cuales se pueden generar una ruta de "
         f"aprendizaje de un archivo. El archivo tiene el siguiente nombre {request.fileName} y este es el contenido: {request.fileBase64}. Quiero que el formato de la respuesta sea una"
         f"lista con únicamente los 3 temas principales y nada más, es decir: [\"tema1\", \"tema2\", \"tema3\"]"
     )
 
-    themes = await ask_gemini(full_prompt)
+    themes = await ask_gemini(full_prompt, model="gemini-2.5-flash-lite")
     print("RESPUESTA DE LA IA", themes)
     
     match = re.search(r'\[.*?\]', themes, re.DOTALL)
@@ -49,7 +49,7 @@ async def generate_roadmap_logic(request, user_email: str):
         f"De lo que se genere , la longitud de cada subtema y sub-subtema debe ser MÁXIMO 55 caracteres."
     )
 
-    response = await ask_gemini(full_prompt)
+    response = await ask_gemini(full_prompt, model="gemini-2.5-flash")
     print("RESPUESTA DE LA IA", response)
     cleaned = (
         response.replace("```json", "")
@@ -77,7 +77,7 @@ async def generate_roadmap_logic(request, user_email: str):
         f"Aquí tienes los datos base: {json_text}"
     )
 
-    second_response = await ask_gemini(second_prompt)
+    second_response = await ask_gemini(full_prompt, model="gemini-2.5-flash")
     cleaned_extra = (
         second_response.replace("```json", "")
         .replace("```python", "")
@@ -123,7 +123,7 @@ async def generate_questions_logic(request):
         f"Genera al menos 5 preguntas y un máximo de 10. Cada pregunta debe ser clara, concisa y directamente relacionada con el tema."
     )
 
-    response = await ask_gemini(full_prompt)
+    response = await ask_gemini(full_prompt, model="gemini-2.5-flash")
     print("RESPUESTA DE LA IA", response)
     parse_response = response.replace("json", "").replace("```", "")
 
@@ -142,7 +142,7 @@ async def related_topics_logic(request):
         f"Cada tema debe tener una longitud máxima de 45 caracteres."
     )
 
-    response = await ask_gemini(full_prompt)
+    response = await ask_gemini(full_prompt, model="gemini-2.5-flash")
     print("RESPUESTA DE LA IA", response)
 
     clean_response = response.replace("json", "").replace("```", "").strip()

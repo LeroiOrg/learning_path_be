@@ -16,3 +16,4 @@ openai
 pymongo
 google-auth-oauthlib
 google-cloud-pubsub
+dnspython
