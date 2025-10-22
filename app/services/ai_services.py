@@ -8,7 +8,7 @@ LOCATION = os.getenv("LOCATION")
 # Vertex configuration
 vertexai.init(project=PROJECT_ID, location=LOCATION)
 
-model = GenerativeModel("gemini-2.5-flash")
+model = GenerativeModel("gemini-2.5-flash-lite")
 
 async def ask_gemini(prompt: str):
     response = model.generate_content(prompt)
