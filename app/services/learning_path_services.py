@@ -10,7 +10,7 @@ async def process_file_logic(request):
     """
     
     full_prompt = (
-        f"Eres un experto en la extracción de los 3 temas principales de los cuales se pueden generar una ruta de "
+        f"NECESITO UNA RESPUESTA ULTRA RAPIDA Y COMPLETA: Eres un experto en la extracción de los 3 temas principales de los cuales se pueden generar una ruta de "
         f"aprendizaje de un archivo. El archivo tiene el siguiente nombre {request.fileName} y este es el contenido: {request.fileBase64}. Quiero que el formato de la respuesta sea una"
         f"lista con únicamente los 3 temas principales y nada más, es decir: [\"tema1\", \"tema2\", \"tema3\"]"
     )
@@ -41,7 +41,7 @@ async def generate_roadmap_logic(request, user_email: str):
     Lógica para generar la ruta de aprendizaje.
     """
     full_prompt = (
-        f"Eres un experto en la creación de rutas de aprendizaje basadas en un tema específico. El tema principal es {request.topic}. "
+        f"NECESITO UNA RESPUESTA ULTRA RAPIDA Y COMPLETA: Eres un experto en la creación de rutas de aprendizaje basadas en un tema específico. El tema principal es {request.topic}. "
         f"Quiero que el formato de la respuesta sea un diccionario anidado donde la clave sea el tema principal y los valores sean diccionarios de subtemas, "
         f"cada uno con su propia lista de subtemas adicionales. "
         f"Por ejemplo: '{{\"Subtema 1\": [\"Sub-subtema 1.1\", \"Sub-subtema 1.2\"], \"Subtema 2\": [\"Sub-subtema 2.1\", \"Sub-subtema 2.2\"]}}' con las comillas tal cual como te las di. "
@@ -71,7 +71,7 @@ async def generate_roadmap_logic(request, user_email: str):
         raise HTTPException(status_code=400, detail=f"JSON inválido extraído de la IA: {e}")
 
     second_prompt = (
-        f"Ahora con estos temas quiero que me devuelvas un diccionario JSON donde la clave sea cada tema, "
+        f"NECESITO UNA RESPUESTA ULTRA RAPIDA Y COMPLETA: Ahora con estos temas quiero que me devuelvas un diccionario JSON donde la clave sea cada tema, "
         f"subtema y sub-subtema, y el valor sea una descripción detallada con tiempo estimado y un link real. "
         f"No incluyas texto fuera del JSON. "
         f"Aquí tienes los datos base: {json_text}"
@@ -111,7 +111,7 @@ async def generate_questions_logic(request):
     Lógica para generar preguntas.
     """
     full_prompt = (
-        f"Eres un experto en la creación de preguntas de verdadero o falso. Genera una lista de preguntas basadas en los siguientes temas e información: {request.topic}. "
+        f"NECESITO UNA RESPUESTA ULTRA RAPIDA Y COMPLETA: Eres un experto en la creación de preguntas de verdadero o falso. Genera una lista de preguntas basadas en los siguientes temas e información: {request.topic}. "
         f"El formato de la respuesta debe ser exclusivamente una lista en formato JSON con objetos que contengan un 'enunciado' y una 'respuesta' booleana (true o false). "
         f"No incluyas ninguna otra información, explicaciones adicionales ni texto fuera del formato JSON. "
         f"\n\nEjemplo del formato de respuesta esperado:"
