@@ -54,14 +54,53 @@ async def get_conversations_by_user(user_email: str, limit: int = 10):
     Obtiene las últimas conversaciones de un usuario desde MongoDB.
     """
     try:
+        print(f"🔍 Buscando conversaciones para: {user_email}")
+        print(f"📊 Límite: {limit}")
+        
+        # Primero contar cuántas hay
+        total = conversations_collection.count_documents({"user": user_email})
+        print(f"📈 Total en BD: {total}")
+        
         conversations = list(
             conversations_collection.find({"user": user_email})
             .sort("timestamp", -1)
             .limit(limit)
         )
+        
+        print(f"✅ Conversaciones obtenidas: {len(conversations)}")
+        
         for c in conversations:
-            c["_id"] = str(c["_id"])  
+            c["_id"] = str(c["_id"])
+            
         return conversations
     except Exception as e:
-        print("Error al obtener conversaciones:", e)
+        print(f"❌ Error al obtener conversaciones: {e}")
+        return []
+
+
+async def get_roadmaps_by_user(user_email: str, limit: int = 20):
+    """
+    Obtiene los roadmaps de un usuario (filtra por route='/roadmaps' ANTES de limitar).
+    """
+    try:
+        print(f"📚 Buscando roadmaps para: {user_email}")
+        
+        # Filtrar PRIMERO por route, LUEGO limitar
+        roadmaps = list(
+            conversations_collection.find({
+                "user": user_email,
+                "route": "/roadmaps"
+            })
+            .sort("timestamp", -1)
+            .limit(limit)
+        )
+        
+        print(f"✅ Roadmaps encontrados: {len(roadmaps)}")
+        
+        for r in roadmaps:
+            r["_id"] = str(r["_id"])
+            
+        return roadmaps
+    except Exception as e:
+        print(f"❌ Error al obtener roadmaps: {e}")
         return []

@@ -2,7 +2,7 @@ import json
 import re
 from fastapi import HTTPException
 from app.services.ai_services import ask_gemini
-from app.services.pubsub_services import publish_credit_update
+# from app.services.pubsub_services import publish_credit_update  # Comentado temporalmente
 
 async def process_file_logic(request):
     """
@@ -94,11 +94,12 @@ async def generate_roadmap_logic(request, user_email: str):
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Error procesando el JSON secundario: {e}")
     
-    try:
-        publish_credit_update(user_email, -1)  
-        print(f"💰 Crédito descontado a {user_email}")
-    except Exception as e:
-        print(f"⚠️ Error publicando descuento de crédito: {e}")
+    # Descontar crédito (comentado temporalmente)
+    # try:
+    #     publish_credit_update(user_email, -1)  
+    #     print(f"💰 Crédito descontado a {user_email}")
+    # except Exception as e:
+    #     print(f"⚠️ Error publicando descuento de crédito: {e}")
 
     return {
         "roadmap": roadmap,
@@ -154,4 +155,3 @@ async def related_topics_logic(request):
         raise HTTPException(status_code=500, detail="Error procesando respuesta de IA")
 
     return {"related_topics": topics}
-
