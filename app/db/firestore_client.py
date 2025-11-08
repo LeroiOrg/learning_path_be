@@ -1,6 +1,6 @@
 """
 Módulo de conexión a Google Cloud Firestore
-Cliente para learning_path_be
+Reemplaza la conexión anterior de MongoDB
 """
 import os
 from dotenv import load_dotenv
@@ -14,6 +14,7 @@ load_dotenv()
 # Variables de configuración
 PROJECT_ID = os.getenv("GCP_PROJECT_ID", "leroi-474015")
 CREDENTIALS_PATH = os.getenv("GOOGLE_APPLICATION_CREDENTIALS", "./keys/service-account.json")
+IS_PRODUCTION = os.getenv("NODE_ENV") == "production" or os.getenv("K_SERVICE") is not None
 
 # Cliente de Firestore (singleton)
 _db: Optional[firestore.Client] = None
@@ -21,7 +22,8 @@ _db: Optional[firestore.Client] = None
 
 def initialize_firestore() -> firestore.Client:
     """
-    Inicializa la conexión a Firestore usando el service account
+    Inicializa la conexión a Firestore usando el service account en desarrollo
+    o Application Default Credentials en producción (Cloud Run)
     Solo se ejecuta una vez (patrón singleton)
     """
     global _db
@@ -30,22 +32,27 @@ def initialize_firestore() -> firestore.Client:
         return _db
     
     try:
-        # Verificar que el archivo de credenciales existe
-        if not os.path.exists(CREDENTIALS_PATH):
-            raise FileNotFoundError(
-                f"❌ Archivo de credenciales no encontrado en: {CREDENTIALS_PATH}\n"
-                f"   Asegúrate de colocar service-account.json en la carpeta /keys/"
-            )
-        
-        # Inicializar Firebase Admin SDK
-        cred = credentials.Certificate(CREDENTIALS_PATH)
-        
-        # Verificar si ya está inicializado (importante para múltiples instancias)
+        # Verificar si ya está inicializado
         if not firebase_admin._apps:
-            firebase_admin.initialize_app(cred, {
-                'projectId': PROJECT_ID,
-            })
-            print(f"✅ Firebase Admin SDK inicializado para proyecto: {PROJECT_ID}")
+            if IS_PRODUCTION:
+                # En producción (Cloud Run), usar Application Default Credentials
+                firebase_admin.initialize_app(options={
+                    'projectId': PROJECT_ID,
+                })
+                print(f"✅ Firebase Admin SDK inicializado para proyecto: {PROJECT_ID} (Production - ADC)")
+            else:
+                # En desarrollo, usar archivo JSON de credenciales
+                if not os.path.exists(CREDENTIALS_PATH):
+                    raise FileNotFoundError(
+                        f"❌ Archivo de credenciales no encontrado en: {CREDENTIALS_PATH}\n"
+                        f"   Asegúrate de colocar service-account.json en la carpeta /keys/"
+                    )
+                
+                cred = credentials.Certificate(CREDENTIALS_PATH)
+                firebase_admin.initialize_app(cred, {
+                    'projectId': PROJECT_ID,
+                })
+                print(f"✅ Firebase Admin SDK inicializado para proyecto: {PROJECT_ID} (Development)")
         
         # Crear cliente de Firestore
         _db = firestore.client()
@@ -73,17 +80,15 @@ def get_db() -> firestore.Client:
 
 # Colecciones disponibles en esta base de datos
 class Collections:
-    """Nombres de las colecciones en Firestore para learning paths"""
+    """Nombres de las colecciones en Firestore para learning path"""
+    CONVERSATIONS = "conversations"
+    USER_SESSIONS = "user_sessions"
     ROADMAPS = "roadmaps"
-    USER_PROGRESS = "user_progress"
-    LEARNING_RESOURCES = "learning_resources"
-    TOPICS = "topics"
-    USER_GOALS = "user_goals"
+    LEARNING_LOGS = "learning_logs"
 
 
 # Inicializar automáticamente al importar el módulo
 try:
     initialize_firestore()
-    print(f"🔌 FIRESTORE configurado correctamente")
 except Exception as e:
     print(f"⚠️  Advertencia: No se pudo inicializar Firestore al importar: {e}")
