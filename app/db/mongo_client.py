@@ -1,23 +1,13 @@
-from pymongo import MongoClient
-import os
-from dotenv import load_dotenv
+"""
+Módulo de cliente de base de datos
+Migrado de MongoDB a Firestore
+"""
+from app.db.firestore_client import get_db, Collections
 
-# Cargar variables de entorno
-load_dotenv()
+# Cliente principal
+db = get_db()
 
-MONGO_URI = os.getenv("MONGO_URI")
+# Para mantener compatibilidad con código existente que usa "db"
+# Ahora db es un cliente de Firestore en lugar de MongoDB
 
-print(f"🔌 MONGO_URI configurada: {MONGO_URI[:50]}..." if MONGO_URI else "❌ MONGO_URI no encontrada")
-
-if not MONGO_URI:
-    raise ValueError("MONGO_URI no está configurada en las variables de entorno")
-
-client = MongoClient(MONGO_URI)
-db = client["leroi_learning"]
-
-# Verificar conexión
-try:
-    client.admin.command('ping')
-    print("✅ Conectado a MongoDB Atlas correctamente")
-except Exception as e:
-    print(f"❌ Error conectando a MongoDB: {e}")
+print(f"🔌 FIRESTORE configurado - Cliente disponible: {type(db)}")
