@@ -6,6 +6,10 @@ ENV/
 .env
 env
 
+# Credenciales y keys
+keys/
+*.json
+
 # Archivos de Python compilados
 __pycache__/
 *.py[cod]
@@ -34,5 +38,3 @@ build/
 # Archivos de sistema
 .DS_Store
 Thumbs.db
-
-keys

@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  learning_path_api:
+    build: .
+    container_name: learning_path_api
+    ports:
+      - "8003:8080"
+    env_file:
+      - .env

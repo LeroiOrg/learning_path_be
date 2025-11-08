@@ -37,4 +37,3 @@ async def ask_gemini(prompt: str, model: str = "gemini-2.5-flash"):
     )
     print("ESTA ES LA RESPUESTAAAAA", response)
     return response.text.strip()
-

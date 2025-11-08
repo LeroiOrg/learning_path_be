@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-pymongo
+firebase-admin==6.3.0
 flake8
 isort
 black
@@ -13,7 +13,6 @@ passlib[bcrypt]
 google-cloud-aiplatform
 google-auth
 openai
-pymongo
 google-auth-oauthlib
 google-cloud-pubsub
 dnspython
