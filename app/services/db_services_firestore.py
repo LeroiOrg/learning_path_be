@@ -1,10 +1,16 @@
 """
 Servicios de base de datos migrados a Firestore
 learning_path_be
+
+UPDATED: Now includes ACID transaction support
 """
 from datetime import datetime
 import uuid
 from app.db.firestore_client import get_db
+from app.db.transactions import FirestoreTransaction, with_retry
+import logging
+
+logger = logging.getLogger(__name__)
 
 # Cache en memoria para sesiones de usuarios
 _user_sessions = {}
@@ -58,6 +64,241 @@ async def save_conversation(
         print(f"❌ Error al guardar conversación en Firestore: {e}")
         raise
 
+
+# ==================== ACID TRANSACTION FUNCTIONS ====================
+
+@with_retry(max_attempts=3)
+async def save_roadmap_with_conversation_atomic(
+    user_email: str,
+    roadmap_title: str,
+    roadmap_content: dict,
+    prompt: str,
+    response: str,
+    metadata: dict = None
+) -> dict:
+    """
+    ACID Transaction: Saves roadmap and conversation atomically
+    If either operation fails, both are rolled back
+    
+    This ensures data consistency - you'll never have orphaned roadmaps
+    without their associated conversations
+    
+    Args:
+        user_email: User's email
+        roadmap_title: Title of the roadmap
+        roadmap_content: Full roadmap data
+        prompt: User's prompt that generated the roadmap
+        response: AI response
+        metadata: Optional metadata
+    
+    Returns:
+        dict: Transaction result with success status and created document IDs
+        
+    Example:
+        >>> result = await save_roadmap_with_conversation_atomic(
+        ...     user_email="user@example.com",
+        ...     roadmap_title="Python Developer Path",
+        ...     roadmap_content={"steps": [...], "duration": "6 months"},
+        ...     prompt="Create a Python roadmap",
+        ...     response="Here's your roadmap..."
+        ... )
+    """
+    session_id = get_or_create_session(user_email)
+    timestamp = datetime.utcnow()
+    
+    # Prepare roadmap document
+    roadmap_data = {
+        "session_id": session_id,
+        "user": user_email,
+        "title": roadmap_title,
+        "content": roadmap_content,
+        "route": "/roadmaps",
+        "timestamp": timestamp,
+        "metadata": metadata or {}
+    }
+    
+    # Prepare conversation document
+    conversation_data = {
+        "session_id": session_id,
+        "user": user_email,
+        "route": "/roadmaps",
+        "prompt": prompt,
+        "response": response,
+        "metadata": {
+            **(metadata or {}),
+            "roadmap_title": roadmap_title,
+            "roadmap_id": None  # Will be set after roadmap creation
+        },
+        "timestamp": timestamp
+    }
+    
+    # Execute atomic transaction
+    tx = FirestoreTransaction()
+    operations = [
+        {
+            'type': 'create',
+            'collection': 'roadmaps',
+            'data': roadmap_data
+        },
+        {
+            'type': 'create',
+            'collection': 'conversations',
+            'data': conversation_data
+        }
+    ]
+    
+    result = tx.execute(operations)
+    
+    if result['success']:
+        # Now update the conversation with the roadmap_id
+        roadmap_id = result['operations']['operation_0']['doc_id']
+        conversation_id = result['operations']['operation_1']['doc_id']
+        
+        # Update conversation with roadmap_id
+        db = get_db()
+        db.collection('conversations').document(conversation_id).update({
+            'metadata.roadmap_id': roadmap_id
+        })
+        
+        logger.info(f"✅ ACID Transaction successful: Roadmap + Conversation saved for {user_email}")
+        return {
+            'success': True,
+            'session_id': session_id,
+            'roadmap_id': roadmap_id,
+            'conversation_id': conversation_id,
+            'timestamp': timestamp
+        }
+    else:
+        logger.error(f"❌ ACID Transaction failed for {user_email}: {result.get('error')}")
+        raise Exception(f"Transaction failed: {result.get('error')}")
+
+
+@with_retry(max_attempts=3)
+async def update_roadmap_with_log_atomic(
+    roadmap_id: str,
+    user_email: str,
+    updates: dict,
+    log_message: str
+) -> dict:
+    """
+    ACID Transaction: Updates roadmap and creates a learning log atomically
+    
+    Args:
+        roadmap_id: ID of the roadmap to update
+        user_email: User's email
+        updates: Dictionary of fields to update
+        log_message: Log message describing the update
+    
+    Returns:
+        dict: Transaction result
+    """
+    timestamp = datetime.utcnow()
+    
+    # Prepare update data
+    update_data = {
+        **updates,
+        "updated_at": timestamp
+    }
+    
+    # Prepare learning log
+    log_data = {
+        "user": user_email,
+        "roadmap_id": roadmap_id,
+        "message": log_message,
+        "timestamp": timestamp,
+        "changes": updates
+    }
+    
+    # Execute atomic transaction
+    tx = FirestoreTransaction()
+    operations = [
+        {
+            'type': 'update',
+            'collection': 'roadmaps',
+            'doc_id': roadmap_id,
+            'data': update_data
+        },
+        {
+            'type': 'create',
+            'collection': 'learning_logs',
+            'data': log_data
+        }
+    ]
+    
+    result = tx.execute(operations)
+    
+    if result['success']:
+        logger.info(f"✅ ACID Transaction successful: Roadmap updated + Log created for {roadmap_id}")
+        return {
+            'success': True,
+            'roadmap_id': roadmap_id,
+            'log_id': result['operations']['operation_1']['doc_id'],
+            'timestamp': timestamp
+        }
+    else:
+        logger.error(f"❌ ACID Transaction failed for roadmap {roadmap_id}: {result.get('error')}")
+        raise Exception(f"Transaction failed: {result.get('error')}")
+
+
+async def delete_roadmap_cascade_atomic(roadmap_id: str, user_email: str) -> dict:
+    """
+    ACID Transaction: Deletes roadmap and all associated conversations atomically
+    
+    Args:
+        roadmap_id: ID of the roadmap to delete
+        user_email: User's email (for verification)
+    
+    Returns:
+        dict: Transaction result
+    """
+    try:
+        db = get_db()
+        
+        # First, get all conversations associated with this roadmap
+        conversations_query = (db.collection("conversations")
+                             .where("user", "==", user_email)
+                             .where("metadata.roadmap_id", "==", roadmap_id))
+        
+        conversation_docs = list(conversations_query.stream())
+        
+        # Build operations list
+        operations = [
+            {
+                'type': 'delete',
+                'collection': 'roadmaps',
+                'doc_id': roadmap_id
+            }
+        ]
+        
+        # Add delete operations for all related conversations
+        for conv_doc in conversation_docs:
+            operations.append({
+                'type': 'delete',
+                'collection': 'conversations',
+                'doc_id': conv_doc.id
+            })
+        
+        # Execute atomic transaction
+        tx = FirestoreTransaction()
+        result = tx.execute(operations)
+        
+        if result['success']:
+            logger.info(f"✅ ACID Transaction successful: Deleted roadmap {roadmap_id} and {len(conversation_docs)} conversations")
+            return {
+                'success': True,
+                'roadmap_id': roadmap_id,
+                'deleted_conversations': len(conversation_docs)
+            }
+        else:
+            logger.error(f"❌ ACID Transaction failed for roadmap deletion: {result.get('error')}")
+            raise Exception(f"Transaction failed: {result.get('error')}")
+            
+    except Exception as e:
+        logger.error(f"❌ Error in cascade delete: {e}")
+        raise
+
+
+# ==================== ORIGINAL FUNCTIONS (NON-TRANSACTIONAL) ====================
 
 async def get_conversations_by_user(user_email: str, limit: int = 10):
     """
@@ -132,8 +373,6 @@ async def get_roadmaps_by_user(user_email: str, limit: int = 20):
         print(f"❌ Error al obtener roadmaps: {e}")
         return []
 
-
-# Funciones auxiliares adicionales
 
 async def delete_conversation(conversation_id: str):
     """
