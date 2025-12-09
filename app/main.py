@@ -7,10 +7,11 @@ import uvicorn
 app = FastAPI(title="Learning path Service", version="1.0")
 
 app.add_middleware(
-	CORSMiddleware,
-	allow_origins=["*"],
-	allow_methods=["*"],
-	allow_headers=["*"],
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 app.include_router(learning_path_routes.router, prefix="/learning_path", tags=["learning_path"])
